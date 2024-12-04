@@ -14,6 +14,9 @@ OSSL_provider_init_fn ossl_default_provider_init;
 OSSL_provider_init_fn ossl_base_provider_init;
 OSSL_provider_init_fn ossl_null_provider_init;
 OSSL_provider_init_fn ossl_fips_intern_provider_init;
+#ifdef OQS_PROVIDER_STATIC
+OSSL_provider_init_fn oqs_provider_init;
+#endif
 #ifdef STATIC_LEGACY
 OSSL_provider_init_fn ossl_legacy_provider_init;
 #endif
@@ -27,6 +30,9 @@ const OSSL_PROVIDER_INFO ossl_predefined_providers[] = {
 # endif
     { "base", NULL, ossl_base_provider_init, NULL, 0 },
     { "null", NULL, ossl_null_provider_init, NULL, 0 },
+#ifdef OQS_PROVIDER_STATIC
+    { "pqtls", NULL, oqs_provider_init, NULL, 0 },
+#endif
 #endif
     { NULL, NULL, NULL, NULL, 0 }
 };

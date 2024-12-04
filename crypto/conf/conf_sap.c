@@ -12,6 +12,7 @@
 #include "internal/cryptlib.h"
 #include "internal/conf.h"
 #include "conf_local.h"
+#include "openssl/provider.h"
 #include <openssl/x509.h>
 #include <openssl/asn1.h>
 #include <openssl/engine.h>
@@ -64,17 +65,34 @@ int ossl_config_int(const OPENSSL_INIT_SETTINGS *settings)
             filename, appname, flags);
 #endif
 
-#ifndef OPENSSL_SYS_UEFI
-    ret = CONF_modules_load_file_ex(OSSL_LIB_CTX_get0_global_default(),
-                                    filename, appname, flags);
-#else
+#ifdef OPENSSL_NO_PQTLS
     ret = 1;
+#else
+    ret = OSSL_PROVIDER_try_load(NULL, "pqtls", 1) != NULL;
 #endif
+
+#ifndef OPENSSL_SYS_UEFI
+    ret = ret && CONF_modules_load_file_ex(OSSL_LIB_CTX_get0_global_default(),
+                                    filename, appname, flags);
+#endif
+
     openssl_configured = 1;
     return ret;
 }
 
-void ossl_no_config_int(void)
+int ossl_no_config_int(void)
 {
+    int ret = 0;
+
+    if (openssl_configured)
+        return 1;
+
+#ifdef OPENSSL_NO_PQTLS
+    ret = 1;
+#else
+    ret = OSSL_PROVIDER_try_load(NULL, "pqtls", 1) != NULL;
+#endif
+
     openssl_configured = 1;
+    return ret;
 }

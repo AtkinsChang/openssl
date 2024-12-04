@@ -199,6 +199,7 @@ static const unsigned char ecformats_default[] = {
 
 /* The default curves */
 static const uint16_t supported_groups_default[] = {
+    OSSL_TLS_GROUP_ID_x25519_kyber768, /* X25519Kyber768Draft00 (0x6399) */
     OSSL_TLS_GROUP_ID_x25519,        /* X25519 (29) */
     OSSL_TLS_GROUP_ID_secp256r1,     /* secp256r1 (23) */
     OSSL_TLS_GROUP_ID_x448,          /* X448 (30) */
@@ -994,6 +995,31 @@ uint16_t tls1_shared_group(SSL_CONNECTION *s, int nmatch)
     return 0;
 }
 
+int tls1_prepend_pqtls_group(uint16_t **pext, size_t *pextlen)
+{
+    size_t i;
+    uint16_t *gid_arr = *pext;
+
+    for (i = 0; i < *pextlen; i++)
+      if (gid_arr[i] == OSSL_TLS_GROUP_ID_x25519_kyber768)
+        break;
+
+    // prepend if not found
+    if (i == *pextlen) {
+        gid_arr = OPENSSL_realloc(gid_arr, (i + 1) * sizeof(*gid_arr));
+        if (gid_arr == NULL)
+            return 0;
+
+        *pextlen += 1;
+        *pext = gid_arr;
+    }
+
+    memmove(gid_arr + 1, gid_arr, i);
+    gid_arr[0] = OSSL_TLS_GROUP_ID_x25519_kyber768;
+
+    return 1;
+}
+
 int tls1_set_groups(uint16_t **pext, size_t *pextlen,
                     int *groups, size_t ngroups)
 {
@@ -1029,7 +1055,11 @@ int tls1_set_groups(uint16_t **pext, size_t *pextlen,
     OPENSSL_free(*pext);
     *pext = glist;
     *pextlen = ngroups;
+#ifdef OPENSSL_NO_PQTLS_PREPEND
     return 1;
+#else
+    return tls1_prepend_pqtls_group(pext, pextlen);
+#endif
 err:
     OPENSSL_free(glist);
     return 0;
@@ -1110,7 +1140,11 @@ int tls1_set_groups_list(SSL_CTX *ctx, uint16_t **pext, size_t *pextlen,
     OPENSSL_free(*pext);
     *pext = tmparr;
     *pextlen = gcb.gidcnt;
+#ifdef OPENSSL_NO_PQTLS_PREPEND
     ret = 1;
+#else
+    ret = tls1_prepend_pqtls_group(pext, pextlen);
+#endif
  end:
     OPENSSL_free(gcb.gid_arr);
     return ret;

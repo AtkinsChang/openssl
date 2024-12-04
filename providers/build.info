@@ -40,6 +40,7 @@ $LIBCOMMON=libcommon.a
 $LIBFIPS=libfips.a
 $LIBLEGACY=liblegacy.a
 $LIBDEFAULT=libdefault.a
+$LIBOQS=liboqs.a
 LIBS{noinst}=$LIBDEFAULT $LIBCOMMON
 
 # Enough of our implementations include prov/ciphercommon.h (present in
@@ -52,6 +53,7 @@ INCLUDE[$LIBCOMMON]=$COMMON_INCLUDES
 INCLUDE[$LIBFIPS]=.. $COMMON_INCLUDES
 INCLUDE[$LIBLEGACY]=.. $COMMON_INCLUDES
 INCLUDE[$LIBDEFAULT]=.. $COMMON_INCLUDES
+INCLUDE[$LIBOQS]=..
 DEFINE[$LIBFIPS]=FIPS_MODULE
 
 # Weak dependencies to provide library order information.  What is actually
@@ -175,3 +177,31 @@ ENDIF
 # include all the object files that are needed.
 $NULLGOAL=../libcrypto
 SOURCE[$NULLGOAL]=nullprov.c prov_running.c
+
+#
+# OQS provider stuff
+#
+IF[{- !$disabled{pqtls} -}]
+  LIBS{noinst}=$LIBOQS
+
+  INCLUDE[$LIBOQS]=../include ../liboqs-install/include
+  SOURCE[$LIBOQS]=../oqs-provider/oqsprov/oqsprov_capabilities.c ../oqs-provider/oqsprov/oqsprov_keys.c ../oqs-provider/oqsprov/oqs_kmgmt.c ../oqs-provider/oqsprov/oqs_sig.c ../oqs-provider/oqsprov/oqs_kem.c ../oqs-provider/oqsprov/oqs_encode_key2any.c ../oqs-provider/oqsprov/oqs_endecoder_common.c ../oqs-provider/oqsprov/oqs_decode_der2key.c ../oqs-provider/oqsprov/oqsprov_bio.c
+  DEPEND[$LIBOQS]=../liboqs-install/lib/liboqs.a
+
+  IF[{- $disabled{module} -}]
+    $OQSGOAL=../libcrypto
+    SOURCE[$OQSGOAL]=$LIBOQS
+    DEFINE[$OQSGOAL]=OQS_PROVIDER_STATIC
+    DEPEND[$OQSGOAL]=../liboqs-install/lib/liboqs.a
+  ELSE
+    $OQSGOAL=pqtls
+    MODULES=$OQSGOAL
+    DEPEND[$OQSGOAL]=$LIBOQS
+    DEPEND[$LIBOQS]=../libcrypto
+  ENDIF
+
+  DEFINE[../libcrypto]=PQTLS
+  DEFINE[$OQSGOAL]=OQSPROVIDER_VERSION_TEXT='"\"0.0.0\""' OQS_PROVIDER_COMMIT='"\"\""'
+  INCLUDE[$OQSGOAL]=../include ../liboqs-install/include
+  SOURCE[$OQSGOAL]=../oqs-provider/oqsprov/oqsprov.c
+ENDIF

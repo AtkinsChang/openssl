@@ -24,6 +24,7 @@
 #include "crypto/sparse_array.h"
 #include "property_local.h"
 #include "crypto/context.h"
+#include "internal/namemap.h"
 
 /*
  * The number of elements in the query cache before we initiate a flush.
@@ -500,7 +501,7 @@ int ossl_method_store_fetch(OSSL_METHOD_STORE *store,
     OSSL_PROPERTY_LIST *pq = NULL, *p2 = NULL;
     const OSSL_PROVIDER *prov = prov_rw != NULL ? *prov_rw : NULL;
     int ret = 0;
-    int j, best = -1, score, optional;
+    int j, k, best = -1, score, optional;
 
     if (nid <= 0 || method == NULL || store == NULL)
         return 0;
@@ -550,6 +551,20 @@ int ossl_method_store_fetch(OSSL_METHOD_STORE *store,
     for (j = 0; j < sk_IMPLEMENTATION_num(alg->impls); j++) {
         if ((impl = sk_IMPLEMENTATION_value(alg->impls, j)) != NULL
             && (prov == NULL || impl->provider == prov)) {
+
+            printf("provider: %s\n", ossl_provider_name(impl->provider));
+            for (k = 0; k < impl->properties->num_properties; k++) {
+                printf("%s=", ossl_property_name_str(store->ctx, impl->properties->properties[k].name_idx));
+                if (impl->properties->properties[k].type == OSSL_PROPERTY_TYPE_STRING) {
+                    printf("%s\n", ossl_property_value_str(store->ctx, impl->properties->properties[k].v.str_val));
+                } else if (impl->properties->properties[k].type == OSSL_PROPERTY_TYPE_NUMBER) {
+                    printf("%ld\n", impl->properties->properties[k].v.int_val);
+                } else {
+                    printf("\n");
+                }
+            }
+            printf("\n");
+
             score = ossl_property_match_count(pq, impl->properties);
             if (score > best) {
                 best_impl = impl;

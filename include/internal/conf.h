@@ -25,7 +25,7 @@ struct ossl_init_settings_st {
 };
 
 int ossl_config_int(const OPENSSL_INIT_SETTINGS *);
-void ossl_no_config_int(void);
+int ossl_no_config_int(void);
 void ossl_config_modules_free(void);
 
 #endif

@@ -477,6 +477,8 @@ my @disablables = (
     "nextprotoneg",
     "ocb",
     "ocsp",
+    "pqtls",
+    "pqtls-prepend",
     "padlockeng",
     "pic",
     "pinshared",
